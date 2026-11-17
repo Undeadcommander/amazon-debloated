@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f8f5">
+  <meta name="description" content="A quieter way to shop. Find your saved products, make lists, and take your cart to Amazon.">
+  <title>Bare — Amazon, simplified.</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="header">
+    <a class="brand" href="#/" aria-label="Bare home">bare<span class="brand-dot">.</span><span class="brand-caption">amazon, simplified</span></a>
+    <nav aria-label="Main navigation">
+      <a href="#/" data-nav="shop">Browse</a>
+      <a href="#/lists" data-nav="lists"><svg class="icon" aria-hidden="true"><use href="/icons.svg#bookmark"/></svg><span>Lists</span></a>
+      <a href="#/cart" data-nav="cart"><svg class="icon" aria-hidden="true"><use href="/icons.svg#bag"/></svg><span>Cart</span><span id="cart-count" class="count">0</span></a>
+    </nav>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <footer class="footer"><span><strong>Less scrolling. More living.</strong> Just the essentials.</span><span>Independent of Amazon · Saved on this device <button class="text-button" data-action="about">How it works <span aria-hidden="true">↗</span></button></span></footer>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="no-script">Enable JavaScript to use local lists and your shopping cart.</p></noscript>
+</body>
+</html>

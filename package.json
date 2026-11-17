@@ -1,0 +1,19 @@
+{
+  "name": "amazon-debloated",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A tiny, keyless shopping workspace for Amazon US.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test",
+    "check": "node --check server.mjs && node --check public/app.js && node --check public/core.js"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.1"
+  }
+}
