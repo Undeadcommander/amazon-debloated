@@ -13,7 +13,7 @@ try { state = normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY))); }
 catch { state = emptyState(); storageProblem = true; }
 let filters = { query: '', category: 'All', sort: 'default' };
 let toastTimer;
-const allProducts = () => [...state.products, ...samples];
+const allProducts = () => [...state.products, ...(state.samplesHidden ? [] : samples)];
 const productById = id => allProducts().find(p => p.id === id);
 const saved = id => state.lists.some(l => l.items.includes(id));
 const route = () => {
@@ -72,8 +72,8 @@ function renderShop() {
     <form class="search-form" id="search-form" role="search">${icon('search')}<label for="search" class="sr-only">Search your products and samples</label><input id="search" type="search" name="q" placeholder="Search your products…" value="${esc(filters.query)}" autocomplete="off" maxlength="200"><kbd aria-hidden="true">/</kbd><button class="button" type="submit">Search ${icon('arrow')}</button></form>
     <div class="search-hint"><span>Looking for something new?</span><a id="amazon-search" href="${esc(amazonSearchUrl(filters.query))}" target="_blank" rel="noopener noreferrer">Search Amazon ↗</a><span>then paste the product link here.</span></div>
   </section>
-  <div class="notice">${icon('leaf')}<span><strong>Your quiet corner of Amazon.</strong> No account or API key. Browse samples, or add your own product links.</span><button class="text-button" data-action="import">Add a product ↗</button></div>
-  <section aria-labelledby="catalog-title"><div class="catalog-head"><div class="catalog-heading"><h2 id="catalog-title">The essentials</h2><span id="result-count" role="status" aria-live="polite"></span></div><div class="catalog-tools"><label class="sr-only" for="sort">Sort products</label><select id="sort"><option value="default">Recently added</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name: A to Z</option></select><button class="button secondary" data-action="import">${icon('plus')} Add product</button></div></div>
+  <div class="notice">${icon('leaf')}<span><strong>Your quiet corner of Amazon.</strong> No account or API key. ${state.samplesHidden ? 'Add your own product links to get started.' : 'Browse samples, or add your own product links.'}</span><button class="text-button" data-action="import">Add a product ↗</button></div>
+  <section aria-labelledby="catalog-title"><div class="catalog-head"><div class="catalog-heading"><h2 id="catalog-title">The essentials</h2><span id="result-count" role="status" aria-live="polite"></span></div><div class="catalog-tools"><label class="sr-only" for="sort">Sort products</label><select id="sort"><option value="default">Recently added</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name: A to Z</option></select><button class="button secondary" data-action="import">${icon('plus')} Add product</button><button class="button secondary danger" data-action="delete-all" ${allProducts().length ? '' : 'disabled'}>Delete all items</button></div></div>
   <div class="chips" aria-label="Product categories">${['All', 'Imported', 'Electronics', 'Home & kitchen', 'Everyday carry', 'Office'].map(c => `<button class="chip" data-action="category" data-category="${esc(c)}" aria-pressed="${filters.category === c}">${c === 'Imported' ? 'My products' : c === 'All' ? 'All products' : c}</button>`).join('')}</div>
   <div id="products" class="grid"></div></section>
   <p class="end-note">${icon('check')} No ads. No rabbit holes. Just what you came for.</p>`;
@@ -83,7 +83,7 @@ function renderShop() {
 
 function renderResults() {
   const products = filterProducts(allProducts(), filters);
-  $('#result-count').textContent = `${products.length} ${products.length === 1 ? 'product' : 'products'}${filters.category === 'All' ? ' · includes samples' : ''}`;
+  $('#result-count').textContent = `${products.length} ${products.length === 1 ? 'product' : 'products'}${products.some(p => p.sample) ? ' · includes samples' : ''}`;
   $('#catalog-title').textContent = filters.query ? `Results for “${filters.query}”` : filters.category === 'Imported' ? 'Your products' : 'The essentials';
   $('#products').innerHTML = products.length ? products.map(p => card(p)).join('') : empty('A little too quiet here.', 'Search your saved products, or find something on Amazon and paste its product link here.', `<button class="button" data-action="import">${icon('plus')} Add a product</button><a class="button secondary" href="${esc(amazonSearchUrl(filters.query))}" target="_blank" rel="noopener noreferrer">Search Amazon ${icon('external')}</a>`);
   $('#amazon-search').href = amazonSearchUrl(filters.query);
@@ -166,6 +166,22 @@ document.addEventListener('click', event => {
   if (action === 'import') importDialog();
   if (action === 'edit-product') importDialog(productById(id));
   if (action === 'category') { filters.category = button.dataset.category; renderResults(); }
+  if (action === 'delete-all') {
+    openDialog('Delete all items?', `<p>This permanently removes all ${allProducts().length} products, including samples, and empties every list and your local cart on this device. This cannot be undone. Your list names and theme will stay. Your Amazon cart is unaffected.</p><p class="form-error" id="delete-all-error" role="alert"></p><div class="form-actions"><button class="button secondary" data-action="close-dialog">Cancel</button><button class="button accent" data-action="confirm-delete-all">Delete all items</button></div>`);
+    dialog.querySelector('.form-actions [data-action="close-dialog"]').focus();
+  }
+  if (action === 'confirm-delete-all') {
+    const cleared = { ...state, products: [], cart: [], lists: state.lists.map(l => ({ ...l, items: [] })), samplesHidden: true };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleared)); }
+    catch { $('#delete-all-error').textContent = 'Could not save the deletion. Your items are still here. Allow device storage and try again.'; return; }
+    state = cleared;
+    storageProblem = false;
+    filters = { query: '', category: 'All', sort: 'default' };
+    dialog.close();
+    history.replaceState(null, '', '#/');
+    render({ focus: true });
+    toast('All items deleted.');
+  }
   if (action === 'add-cart') {
     const entry = state.cart.find(c => c.id === id);
     if (!entry && state.cart.length >= MAX_ITEMS) return toast(`Your cart can hold up to ${MAX_ITEMS} different products.`);

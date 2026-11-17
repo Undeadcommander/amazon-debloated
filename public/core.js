@@ -1,7 +1,7 @@
 export const STORAGE_KEY = 'bare-shopping-v1';
 export const MAX_ITEMS = 50;
 export const MAX_QUANTITY = 99;
-export const emptyState = () => ({ products: [], lists: [{ id: 'saved', name: 'Saved for later', items: [] }], cart: [] });
+export const emptyState = () => ({ products: [], lists: [{ id: 'saved', name: 'Saved for later', items: [] }], cart: [], samplesHidden: false });
 
 export function parseAsin(input) {
   const value = String(input).trim();
@@ -40,7 +40,8 @@ export function normalizeState(input) {
     if (!p || typeof p.id !== 'string' || !/^[A-Z0-9]{10}$/.test(p.id) || products.some(x => x.id === p.id)) continue;
     products.push({ id: p.id, title: String(p.title || `Amazon product ${p.id}`).slice(0, 180), brand: 'Your product', category: 'Imported', kind: 'package', price: typeof p.price === 'number' && Number.isFinite(p.price) && p.price >= 0 && p.price <= 1000000 ? p.price : null, note: String(p.note || '').slice(0, 500) });
   }
-  const validId = id => typeof id === 'string' && (products.some(p => p.id === id) || /^sample-[1-8]$/.test(id));
+  const samplesHidden = input.samplesHidden === true;
+  const validId = id => typeof id === 'string' && (products.some(p => p.id === id) || (!samplesHidden && /^sample-[1-8]$/.test(id)));
   const lists = [];
   for (const l of (Array.isArray(input.lists) ? input.lists.slice(0, 100) : [])) {
     if (!l || typeof l.id !== 'string' || !/^[\w-]{1,60}$/.test(l.id) || lists.some(x => x.id === l.id)) continue;
@@ -51,7 +52,7 @@ export function normalizeState(input) {
     if (!c || !validId(c.id) || cart.some(x => x.id === c.id) || cart.length >= MAX_ITEMS) continue;
     cart.push({ id: c.id, quantity: Math.min(MAX_QUANTITY, Math.max(1, Math.trunc(Number(c.quantity)) || 1)) });
   }
-  return { products, lists: lists.length ? lists : emptyState().lists, cart };
+  return { products, lists: lists.length ? lists : emptyState().lists, cart, samplesHidden };
 }
 
 export function filterProducts(products, { query = '', category = 'All', sort = 'default' } = {}) {

@@ -44,6 +44,14 @@ test('corrupt storage values safely produce usable defaults', () => {
     assert.equal(state.lists[0].name, 'Saved for later');
   }
 });
+
+test('removed samples stay hidden and stale references are dropped on reload', () => {
+  const state = normalizeState({ products: [product], samplesHidden: true, lists: [{ id: 'desk', name: 'Desk', items: [product.id, 'sample-1'] }], cart: [{ id: 'sample-1', quantity: 1 }] });
+  assert.equal(state.samplesHidden, true);
+  assert.deepEqual(state.lists[0].items, [product.id]);
+  assert.deepEqual(state.cart, []);
+  assert.equal(normalizeState({}).samplesHidden, false);
+});
 test('local search matches all query terms, categories, and ASINs', () => {
   const products = [product, ...samples];
   assert.deepEqual(filterProducts(products, { query: 'desk LAMP' }), [product]);

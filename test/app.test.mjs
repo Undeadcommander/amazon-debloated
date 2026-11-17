@@ -127,3 +127,80 @@ test('list rename, duplicate name validation, delete, and cross-tab clearing', a
   w.dispatchEvent(new w.StorageEvent('storage', { key: null, newValue: null }));
   assert.equal(w.document.querySelectorAll('.list-card').length, 1);
 });
+
+test('delete all requires confirmation, clears every item, and stays empty after reload', async t => {
+  const original = {
+    products: [{ id: 'B012345678', title: 'My desk lamp', price: 29.99 }],
+    lists: [{ id: 'desk', name: 'Desk setup', items: ['B012345678', 'sample-1'] }],
+    cart: [{ id: 'B012345678', quantity: 2 }, { id: 'sample-2', quantity: 1 }],
+  };
+  const app = await boot(original); t.after(() => app.dom.window.close());
+  const { w, q, click, fill, submit, navigate, stored } = app;
+  w.localStorage.setItem('bare-theme-v1', 'ocean');
+  // The action clears the whole catalog even when the user has filtered it.
+  fill('#search', 'desk lamp');
+  click('[data-action="delete-all"]');
+  assert.match(q('#dialog').textContent, /all 9 products/);
+  assert.equal(w.document.activeElement, q('.form-actions [data-action="close-dialog"]'));
+  click('.form-actions [data-action="close-dialog"]');
+  assert.deepEqual(stored(), original);
+  assert.equal(q('#cart-count').textContent, '3');
+  click('[data-action="delete-all"]');
+  click('[data-action="confirm-delete-all"]');
+  assert.deepEqual(stored().products, []);
+  assert.deepEqual(stored().cart, []);
+  assert.deepEqual(stored().lists, [{ id: 'desk', name: 'Desk setup', items: [] }]);
+  assert.equal(stored().samplesHidden, true);
+  assert.equal(w.localStorage.getItem('bare-theme-v1'), 'ocean');
+  assert.equal(q('#cart-count').textContent, '0');
+  assert.equal(w.document.querySelectorAll('.product').length, 0);
+  assert.equal(q('#search').value, '');
+  assert.equal(q('[data-action="delete-all"]').disabled, true);
+  assert.doesNotMatch(q('#result-count').textContent, /samples/);
+  const reload = await boot(stored()); t.after(() => reload.dom.window.close());
+  assert.equal(reload.w.document.querySelectorAll('.product').length, 0);
+  await reload.navigate('/product/sample-1');
+  assert.equal(reload.q('.detail'), null);
+  await navigate('/cart');
+  assert.ok(q('.empty'));
+  await navigate('/lists/desk');
+  assert.equal(q('h1').textContent, 'Desk setup');
+  assert.ok(q('.empty'));
+  // New imports work without bringing back samples.
+  await navigate('/');
+  click('[data-action="import"]');
+  fill('[name="link"]', 'B087654321'); fill('[name="title"]', 'New product');
+  submit('#import-form');
+  await navigate('/');
+  assert.equal(w.document.querySelectorAll('.product').length, 1);
+  assert.equal(stored().samplesHidden, true);
+});
+
+test('delete all leaves items intact when saving the deletion fails', async t => {
+  const app = await boot({ products: [{ id: 'B012345678', title: 'Lamp' }], cart: [{ id: 'B012345678', quantity: 1 }] });
+  t.after(() => app.dom.window.close());
+  const before = app.stored();
+  app.click('[data-action="delete-all"]');
+  const prototype = Object.getPrototypeOf(app.w.localStorage);
+  const originalSetItem = prototype.setItem;
+  prototype.setItem = () => { throw new Error('Quota exceeded'); };
+  try { app.click('[data-action="confirm-delete-all"]'); }
+  finally { prototype.setItem = originalSetItem; }
+  assert.deepEqual(app.stored(), before);
+  assert.equal(app.q('#dialog').open, true);
+  assert.match(app.q('#delete-all-error').textContent, /Could not save/);
+  assert.equal(app.q('#cart-count').textContent, '1');
+  assert.equal(app.w.document.querySelectorAll('.product').length, 9);
+});
+
+test('a deletion from another tab empties visible products and closes stale dialogs', async t => {
+  const app = await boot(); t.after(() => app.dom.window.close());
+  app.click('[data-action="save"]');
+  app.w.dispatchEvent(new app.w.StorageEvent('storage', {
+    key: core.STORAGE_KEY,
+    newValue: JSON.stringify({ ...core.emptyState(), samplesHidden: true }),
+  }));
+  assert.equal(app.q('#dialog').open, false);
+  assert.equal(app.w.document.querySelectorAll('.product').length, 0);
+  assert.equal(app.q('#cart-count').textContent, '0');
+});

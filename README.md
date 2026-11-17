@@ -24,6 +24,7 @@ On the Windows machine used to build this project, a checksum-verified portable 
 - Keep products, lists, and cart in browser `localStorage`, including cross-tab updates. No account or backend database.
 - Choose Light, Dark, Sand, or Ocean from the header's Theme menu, or follow your device with System. The choice is saved separately on this device and syncs across open tabs.
 - Explore eight clearly labeled sample products with local SVG illustrations. Samples cannot be transferred to Amazon.
+- Use “Delete all items” beside “Add product” to permanently remove all imported and sample products from this device, empty every list, and clear the local cart after confirmation. Sample products stay removed after reload; list names and your theme remain. This does not change your Amazon cart.
 
 ## Limits to understand
 
