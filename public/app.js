@@ -70,7 +70,7 @@ function renderShop() {
     <h1>Find your thing.<br class="sr-only"> Skip the everything.</h1>
     <p>Your products, your lists, your pace. Nothing in the way.</p>
     <form class="search-form" id="search-form" role="search">${icon('search')}<label for="search" class="sr-only">Search your products and samples</label><input id="search" type="search" name="q" placeholder="Search your products…" value="${esc(filters.query)}" autocomplete="off" maxlength="200"><kbd aria-hidden="true">/</kbd><button class="button" type="submit">Search ${icon('arrow')}</button></form>
-    <div class="search-hint"><span>Looking for something new?</span><a id="amazon-search" href="${esc(amazonSearchUrl(filters.query))}" target="_blank" rel="noopener noreferrer">Search Amazon ↗</a><span>then paste the product link here.</span></div>
+    <div class="search-hint"><span>Looking for something new?</span><a id="amazon-search" href="https://www.amazon.com/" target="_blank" rel="noopener noreferrer">Search Amazon ↗</a><span>then paste the product link here.</span></div>
   </section>
   <div class="notice">${icon('leaf')}<span><strong>Your quiet corner of Amazon.</strong> No account or API key. ${state.samplesHidden ? 'Add your own product links to get started.' : 'Browse samples, or add your own product links.'}</span><button class="text-button" data-action="import">Add a product ↗</button></div>
   <section aria-labelledby="catalog-title"><div class="catalog-head"><div class="catalog-heading"><h2 id="catalog-title">The essentials</h2><span id="result-count" role="status" aria-live="polite"></span></div><div class="catalog-tools"><label class="sr-only" for="sort">Sort products</label><select id="sort"><option value="default">Recently added</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name: A to Z</option></select><button class="button secondary" data-action="import">${icon('plus')} Add product</button><button class="button secondary danger" data-action="delete-all" ${allProducts().length ? '' : 'disabled'}>Delete all items</button></div></div>
@@ -85,8 +85,7 @@ function renderResults() {
   const products = filterProducts(allProducts(), filters);
   $('#result-count').textContent = `${products.length} ${products.length === 1 ? 'product' : 'products'}${products.some(p => p.sample) ? ' · includes samples' : ''}`;
   $('#catalog-title').textContent = filters.query ? `Results for “${filters.query}”` : filters.category === 'Imported' ? 'Your products' : 'The essentials';
-  $('#products').innerHTML = products.length ? products.map(p => card(p)).join('') : empty('A little too quiet here.', 'Search your saved products, or find something on Amazon and paste its product link here.', `<button class="button" data-action="import">${icon('plus')} Add a product</button><a class="button secondary" href="${esc(amazonSearchUrl(filters.query))}" target="_blank" rel="noopener noreferrer">Search Amazon ${icon('external')}</a>`);
-  $('#amazon-search').href = amazonSearchUrl(filters.query);
+  $('#products').innerHTML = products.length ? products.map(p => card(p)).join('') : empty('A little too quiet here.', 'Search your saved products, or find something on Amazon and paste its product link here.', `<button class="button" data-action="import">${icon('plus')} Add a product</button><a class="button secondary" href="https://www.amazon.com/" target="_blank" rel="noopener noreferrer">Search Amazon ${icon('external')}</a>`);
   document.querySelectorAll('[data-action="category"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.category === filters.category)));
 }
 

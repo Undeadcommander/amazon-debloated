@@ -68,7 +68,7 @@ test('sample cart is blocked; live search, empty states, and sorting work', asyn
   const { q, click, fill, navigate } = app;
   fill('#search', 'headphones');
   assert.equal(app.w.document.querySelectorAll('.product').length, 1);
-  assert.equal(new URL(q('#amazon-search').href).searchParams.get('k'), 'headphones');
+  assert.equal(q('#amazon-search').href, 'https://www.amazon.com/');
   click('[data-action="add-cart"]');
   await navigate('/cart');
   assert.equal(q('[data-action="checkout"]').disabled, true);
@@ -82,6 +82,7 @@ test('sample cart is blocked; live search, empty states, and sorting work', asyn
   click('[data-category="All"]');
   fill('#search', 'does not exist');
   assert.ok(q('.empty'));
+  assert.equal(q('.empty a[target="_blank"]').href, 'https://www.amazon.com/');
   fill('#search', '');
   q('#sort').value = 'price-low'; q('#sort').dispatchEvent(new app.w.Event('change', { bubbles: true }));
   assert.match(q('.product-title').textContent, /Pocket notebook/);

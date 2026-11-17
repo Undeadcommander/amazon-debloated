@@ -28,7 +28,7 @@ On the Windows machine used to build this project, a checksum-verified portable 
 
 ## Limits to understand
 
-**This is not a live Amazon catalog search engine.** The search field searches products already in this browser plus the sample catalog. “Search Amazon” opens Amazon in a new tab for discovery. Paste the chosen product link back into Bare. Names, notes, and reference prices are entered manually; images, reviews, inventory, and current prices are not fetched or fabricated. Imported products use a neutral package illustration.
+**This is not a live Amazon catalog search engine.** The search field searches products already in this browser plus the sample catalog. “Search Amazon” opens the Amazon homepage in a new tab. Paste the chosen product link back into Bare. Names, notes, and reference prices are entered manually; images, reviews, inventory, and current prices are not fetched or fabricated. Imported products use a neutral package illustration.
 
 The app supports Amazon US only. Open shortened links such as `a.co` on Amazon first and copy the resulting full product URL. Choose the exact product variant before copying its link.
 
