@@ -11,7 +11,7 @@
     "start": "node server.mjs",
     "dev": "node --watch server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check public/app.js && node --check public/core.js && node --check public/theme.js"
+    "check": "node --check server.mjs && node --check public/app.js && node --check public/core.js && node --check public/theme.js && node --check extension/worker.js && node --check extension/amazon.js"
   },
   "devDependencies": {
     "jsdom": "^31.0.1"

@@ -4,11 +4,12 @@ import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import * as core from '../public/core.js';
 
-async function boot(savedState) {
+async function boot(savedState, { cartHelper } = {}) {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
-  const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
+  const dom = new JSDOM(html, { url: 'http://localhost:3000/', runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window;
   w.scrollTo = () => {};
+  if (cartHelper) w.chrome = { runtime: { sendMessage: cartHelper } };
   w.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   w.HTMLDialogElement.prototype.close = function () { this.open = false; };
   if (savedState) w.localStorage.setItem(core.STORAGE_KEY, JSON.stringify(savedState));
@@ -71,6 +72,7 @@ test('sample-only carts have no Amazon links; search, empty states, and sorting 
   click('[data-action="add-cart"]');
   await navigate('/cart');
   assert.equal(q('.cart-layout a[target="_blank"]'), null);
+  assert.equal(q('[data-action="transfer-amazon"]'), null);
   assert.match(q('.warning').textContent, /Sample products/);
   click('[data-action="remove-samples"]');
   assert.equal(q('#cart-count').textContent, '0');
@@ -101,6 +103,47 @@ test('a saved cart shows each imported product link beside its quantity even wit
     ['https://www.amazon.com/dp/B012345678', '2'],
   ]);
   assert.equal(app.q('.summary a[target="_blank"]').href, 'https://www.amazon.com/gp/cart/view.html');
+  assert.deepEqual(app.stored(), saved);
+});
+
+test('the installed helper receives the current quantities without sample items or local edits', async t => {
+  const sent = [];
+  let confirmOpened;
+  const app = await boot({
+    products: [{ id: 'B012345678', title: 'Lamp' }, { id: 'B087654321', title: 'Notebook' }],
+    cart: [{ id: 'B087654321', quantity: 3 }, { id: 'sample-2', quantity: 1 }, { id: 'B012345678', quantity: 2 }],
+  }, { cartHelper: (_extensionId, message, respond) => {
+    if (message.type === 'bare-cart:ping') respond({ ready: true });
+    else { sent.push(structuredClone(message)); confirmOpened = respond; }
+  } });
+  t.after(() => app.dom.window.close());
+  await app.navigate('/cart');
+  const transfer = '[data-action="transfer-amazon"]';
+  assert.match(app.q(transfer).textContent, /Continue to Amazon/);
+  app.click('[data-action="quantity"][data-id="B012345678"][data-delta="-1"]');
+  const saved = app.stored();
+  app.click(transfer);
+  assert.equal(app.q(transfer).disabled, true);
+  app.click(transfer);
+  assert.deepEqual(sent, [{ type: 'bare-cart:open', items: [{ id: 'B087654321', quantity: 3 }, { id: 'B012345678', quantity: 1 }] }]);
+  confirmOpened({ opened: true });
+  await Promise.resolve();
+  assert.equal(app.q(transfer).disabled, false);
+  assert.match(app.q('#toast').textContent, /Check the Amazon tab/);
+  assert.deepEqual(app.stored(), saved);
+});
+
+test('a browser without the helper shows setup and keeps the manual option available', async t => {
+  const saved = { products: [{ id: 'B012345678', title: 'Lamp' }], cart: [{ id: 'B012345678', quantity: 2 }] };
+  const app = await boot(saved); t.after(() => app.dom.window.close());
+  await app.navigate('/cart');
+  const transfer = '[data-action="transfer-amazon"]';
+  assert.match(app.q(transfer).textContent, /Set up Amazon transfer/);
+  app.click(transfer);
+  await Promise.resolve();
+  assert.equal(app.q('#dialog').open, true);
+  assert.match(app.q('#dialog a[download]').href, /bare-cart-helper\.zip$/);
+  assert.equal(app.q('.cart-item a[target="_blank"]').href, 'https://www.amazon.com/dp/B012345678');
   assert.deepEqual(app.stored(), saved);
 });
 

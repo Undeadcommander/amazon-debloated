@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Bare Cart Helper",
+  "description": "Add the items and quantities you choose in Bare to your Amazon US cart.",
+  "version": "1.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwMs6CSxAAVwo6ihyMlU6plrckRWpPiYjwjzEC3WINGIvEDMoReHpPtwgf86+DmmdBR85o6eTIKekT8ae5pndRlAtKcwF0+B8QdbBPv7EsnbBB3nDEgAcBplJl5sonVVftmhxgtR0EullbFe9L0zHf4cUyIRsqoRSP8Fd8eFeZgrPT9RdOUz5pq+AZqgrFEy17kUeOmseSMlULW6vZtaxM0ieoLGiTbEMqdA32PW9Do3gAjXQDLl/a/0zc/B9hPYJ7IFPAFJRgh+iGdU4vOCdDIRpnYoNfTH6mBd8WreUgr+OkhLLRGqjzXwn2qfcUskkJZgKcPmI4A0Hkv4c+tkclwIDAQAB",
+  "permissions": ["storage"],
+  "background": { "service_worker": "worker.js" },
+  "externally_connectable": {
+    "matches": ["https://undeadcommander.github.io/amazon-debloated/*", "http://127.0.0.1/*", "http://localhost/*"]
+  },
+  "content_scripts": [{
+    "matches": ["https://www.amazon.com/gp/cart/view.html*", "https://www.amazon.com/cart*"],
+    "js": ["amazon.js"],
+    "css": ["amazon.css"],
+    "run_at": "document_idle"
+  }]
+}

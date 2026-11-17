@@ -13,6 +13,13 @@ try { state = normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY))); }
 catch { state = emptyState(); storageProblem = true; }
 let filters = { query: '', category: 'All', sort: 'default' };
 let toastTimer;
+let openingAmazon = false;
+let cartHelperReady = false;
+const CART_HELPER_ID = 'neiijaegnpchbbhegjjgkemchghcbbka';
+const CART_HELPER_DOWNLOAD = 'https://undeadcommander.github.io/amazon-debloated/bare-cart-helper.zip';
+const CART_URL = 'https://www.amazon.com/gp/cart/view.html';
+const transferLabel = () => cartHelperReady ? `Continue to Amazon ${icon('external')}` : 'Set up Amazon transfer';
+const transferNote = () => cartHelperReady ? 'Adds these quantities to your existing Amazon cart. Review the cart on Amazon before paying.' : 'Automatic transfer uses the free Bare Cart Helper for desktop Chrome or Edge.';
 const allProducts = () => [...state.products, ...(state.samplesHidden ? [] : samples)];
 const productById = id => allProducts().find(p => p.id === id);
 const saved = id => state.lists.some(l => l.items.includes(id));
@@ -141,8 +148,67 @@ function renderCart() {
       ${summary.unknown ? `<p>${summary.unknown} ${summary.unknown === 1 ? 'item has' : 'items have'} no saved price and ${summary.unknown === 1 ? 'is' : 'are'} excluded from this subtotal.</p>` : ''}
       <p>Saved prices are estimates. Amazon confirms prices, availability, shipping, and taxes.</p>
       ${hasSamples ? '<p class="warning">Sample products are examples and have no Amazon listing.</p><button class="text-button" data-action="remove-samples">Remove sample items</button>' : ''}
-      ${hasImported ? `<p>Open each product on Amazon and add the quantity shown here. Then review your Amazon cart before paying.</p><a class="button accent" href="https://www.amazon.com/gp/cart/view.html" target="_blank" rel="noopener noreferrer">Open Amazon cart ${icon('external')}</a>` : ''}
+      ${hasImported ? `<p id="amazon-transfer-note">${transferNote()}</p>
+      <button class="button accent" data-action="transfer-amazon" aria-describedby="amazon-transfer-note" ${openingAmazon ? 'disabled' : ''}>${transferLabel()}</button>
+      <a class="button secondary" href="${CART_URL}" target="_blank" rel="noopener noreferrer">Open Amazon cart ${icon('external')}</a>` : ''}
     </aside></div>`;
+  if (hasImported && !cartHelperReady) checkCartHelper();
+}
+
+function askCartHelper(message) {
+  const runtime = globalThis.chrome?.runtime;
+  if (!runtime?.sendMessage) return Promise.resolve(null);
+  return new Promise(resolve => {
+    try {
+      runtime.sendMessage(CART_HELPER_ID, message, response => resolve(runtime.lastError ? null : response ?? null));
+    } catch { resolve(null); }
+  });
+}
+
+function updateTransferButton(ready) {
+  cartHelperReady = ready;
+  const button = main.querySelector('[data-action="transfer-amazon"]');
+  if (!button) return;
+  button.innerHTML = transferLabel();
+  $('#amazon-transfer-note').textContent = transferNote();
+}
+
+async function checkCartHelper() {
+  const result = await askCartHelper({ type: 'bare-cart:ping' });
+  if (result?.ready) updateTransferButton(true);
+}
+
+async function transferToAmazon() {
+  if (openingAmazon) return;
+  const items = state.cart.filter(({ id }) => !productById(id)?.sample);
+  if (!items.length) return;
+  openingAmazon = true;
+  const button = main.querySelector('[data-action="transfer-amazon"]');
+  if (button) button.disabled = true;
+  try {
+    const result = await askCartHelper({ type: 'bare-cart:open', items });
+    if (result?.opened) toast('Check the Amazon tab for your transfer.');
+    else if (result) toast('Could not open the transfer. Try again or add items on Amazon.');
+    else {
+      updateTransferButton(false);
+      if (route().path === '/cart') showTransferSetup();
+    }
+  } finally {
+    openingAmazon = false;
+    const activeButton = main.querySelector('[data-action="transfer-amazon"]');
+    if (activeButton) activeButton.disabled = false;
+  }
+}
+
+function showTransferSetup() {
+  openDialog('Set up Amazon cart transfer', `<p>The Bare Cart Helper adds your items to your Amazon US cart in this browser.</p>
+    <ol class="transfer-steps">
+      <li><a href="${CART_HELPER_DOWNLOAD}" download>Download Bare Cart Helper</a> and extract the ZIP.</li>
+      <li>On desktop Chrome or Edge, open <code>chrome://extensions</code> or <code>edge://extensions</code>, turn on <strong>Developer mode</strong>, then select <strong>Load unpacked</strong>.</li>
+      <li>Choose the extracted folder containing <code>manifest.json</code>. Refresh Bare and select <strong>Continue to Amazon</strong>.</li>
+    </ol>
+    <p>You can also use <strong>View on Amazon</strong> beside each item to add it manually.</p>
+    <div class="form-actions"><button class="button" data-action="close-dialog">Done</button></div>`);
 }
 
 function render({ focus = false } = {}) {
@@ -253,7 +319,11 @@ document.addEventListener('click', event => {
     state.cart = state.cart.filter(c => action === 'remove-samples' ? !productById(c.id)?.sample : c.id !== id);
     persist(); renderCart();
   }
-  if (action === 'about') openDialog('Shopping, with some space.', `<p>Bare is a small, independent workspace for Amazon US. No login, no ads, no tracking.</p><div class="about-step"><h3>01 / Find something worth keeping</h3><p>Search your local catalog instantly. For new finds, search Amazon and bring back the full product link. No live Amazon catalog is connected.</p></div><div class="about-step"><h3>02 / Make it yours</h3><p>Add a name, a reference price, and a note. Organize products into lists. Everything stays in this browser; clearing site data removes your saved items.</p></div><div class="about-step"><h3>03 / Finish on Amazon</h3><p>Open the listings from your Bare cart and add each item on Amazon in the quantity shown in Bare. Then review your Amazon cart before paying.</p></div><div class="about-step"><h3>A note about samples</h3><p>Sample products, illustrations, and prices show how the app works. Sample products have no Amazon listing.</p></div><div class="form-actions"><button class="button" data-action="close-dialog">Got it</button></div>`);
+  if (action === 'transfer-amazon') {
+    if (cartHelperReady) void transferToAmazon();
+    else showTransferSetup();
+  }
+  if (action === 'about') openDialog('Shopping, with some space.', `<p>Bare is a small, independent workspace for Amazon US. No login, no ads, no tracking.</p><div class="about-step"><h3>01 / Find something worth keeping</h3><p>Search your local catalog instantly. For new finds, search Amazon and bring back the full product link. No live Amazon catalog is connected.</p></div><div class="about-step"><h3>02 / Make it yours</h3><p>Add a name, a reference price, and a note. Organize products into lists. Everything stays in this browser; clearing site data removes your saved items.</p></div><div class="about-step"><h3>03 / Finish on Amazon</h3><p>Use the Bare Cart Helper for Chrome or Edge to send your items and quantities to Amazon. You can also open the listings and add them yourself. Review your Amazon cart before paying.</p></div><div class="about-step"><h3>A note about samples</h3><p>Sample products, illustrations, and prices show how the app works. Sample products have no Amazon listing.</p></div><div class="form-actions"><button class="button" data-action="close-dialog">Got it</button></div>`);
 });
 
 document.addEventListener('input', event => {
