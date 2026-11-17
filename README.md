@@ -64,4 +64,4 @@ Tests cover URL validation, state recovery, search/sorting, integer-cent totals,
 | `server.mjs` | Zero-dependency static HTTP server, gzip, ETags, and CSP |
 | `test/` | Unit, HTTP, and DOM integration tests |
 
-Static hosting is also possible: serve the contents of `public/` at a domain root. Hash routes need no server-side rewrites. Configure equivalent security and compression headers on your host. Files are loaded from root-relative URLs, so subdirectory hosting requires updating those URLs.
+Static hosting is also possible: serve the contents of `public/` at a domain root or a subdirectory. Hash routes need no server-side rewrites. The GitHub Pages workflow publishes `public/` whenever `main` changes. Configure equivalent security and compression headers on other hosts where supported.
