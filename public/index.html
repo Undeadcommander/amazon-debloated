@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f8f8f5">
   <meta name="description" content="A quieter way to shop. Find your saved products, make lists, and take your cart to Amazon.">
   <title>Bare — Amazon, simplified.</title>
+  <script src="./theme.js"></script>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
@@ -18,6 +19,7 @@
       <a href="#/" data-nav="shop">Browse</a>
       <a href="#/lists" data-nav="lists"><svg class="icon" aria-hidden="true"><use href="./icons.svg#bookmark"/></svg><span>Lists</span></a>
       <a href="#/cart" data-nav="cart"><svg class="icon" aria-hidden="true"><use href="./icons.svg#bag"/></svg><span>Cart</span><span id="cart-count" class="count">0</span></a>
+      <label class="theme-picker" for="theme"><span>Theme</span><select id="theme" name="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option><option value="sand">Sand</option><option value="ocean">Ocean</option></select></label>
     </nav>
   </header>
   <main id="main" tabindex="-1"></main>

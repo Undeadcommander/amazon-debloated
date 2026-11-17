@@ -22,6 +22,7 @@ On the Windows machine used to build this project, a checksum-verified portable 
 - Create, rename, and delete lists; save products to multiple lists.
 - Add products to a persistent local cart, adjust quantities, and transfer ASINs and quantities to Amazon using its add-to-cart URL.
 - Keep products, lists, and cart in browser `localStorage`, including cross-tab updates. No account or backend database.
+- Choose Light, Dark, Sand, or Ocean from the header's Theme menu, or follow your device with System. The choice is saved separately on this device and syncs across open tabs.
 - Explore eight clearly labeled sample products with local SVG illustrations. Samples cannot be transferred to Amazon.
 
 ## Limits to understand
@@ -60,6 +61,7 @@ Tests cover URL validation, state recovery, search/sorting, integer-cent totals,
 | `public/app.js` | Hash routes, rendering, dialogs, and interactions |
 | `public/core.js` | Validation, search, state normalization, and cart logic |
 | `public/styles.css` | Responsive interface and reduced-motion support |
+| `public/theme.js` | Saved color themes and system appearance, applied before rendering |
 | `public/products.svg` | Local sample illustrations |
 | `server.mjs` | Zero-dependency static HTTP server, gzip, ETags, and CSP |
 | `test/` | Unit, HTTP, and DOM integration tests |
