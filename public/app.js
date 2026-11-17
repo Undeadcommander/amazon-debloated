@@ -1,4 +1,4 @@
-import { STORAGE_KEY, MAX_ITEMS, MAX_QUANTITY, emptyState, normalizeState, samples, parseAsin, amazonProductUrl, amazonSearchUrl, checkoutUrl, cartSummary, filterProducts } from './core.js';
+import { STORAGE_KEY, MAX_ITEMS, MAX_QUANTITY, emptyState, normalizeState, samples, parseAsin, amazonProductUrl, amazonSearchUrl, cartSummary, filterProducts } from './core.js';
 
 const $ = selector => document.querySelector(selector);
 const main = $('#main');
@@ -105,17 +105,44 @@ function renderDetail(p) {
 }
 
 function renderCart() {
-  const summary = cartSummary(state.cart, allProducts());
-  const hasSamples = state.cart.some(c => productById(c.id)?.sample);
-  main.innerHTML = `<div class="page-head"><div><div class="eyebrow muted">Only what you need</div><h1>Your cart.</h1><p>${summary.count} ${summary.count === 1 ? 'item' : 'items'}. One easy handoff to Amazon.</p></div><a class="button secondary" href="#/">Keep browsing</a></div>`;
+  const products = allProducts();
+  const items = state.cart.map(({ id, quantity }) => ({ product: products.find(p => p.id === id), quantity }));
+  const summary = cartSummary(state.cart, products);
+  const hasSamples = items.some(({ product }) => product.sample);
+  const hasImported = items.some(({ product }) => !product.sample);
+  main.innerHTML = `<div class="page-head"><div><div class="eyebrow muted">Only what you need</div><h1>Your cart.</h1><p>${summary.count} ${summary.count === 1 ? 'item' : 'items'}</p></div><a class="button secondary" href="#/">Keep browsing</a></div>`;
   if (!state.cart.length) {
-    main.innerHTML += empty('Nothing extra. Nothing yet.', 'Add a product to start your cart. When you’re ready, continue to Amazon to review and pay.', '<a class="button" href="#/">Browse products</a><button class="button secondary" data-action="import">Add a product link</button>', 'bag');
+    main.innerHTML += empty('Nothing extra. Nothing yet.', 'Add an Amazon product to keep track of what you want to buy.', '<a class="button" href="#/">Browse products</a><button class="button secondary" data-action="import">Add a product link</button>', 'bag');
     return;
   }
-  main.innerHTML += `<div class="cart-layout"><section aria-label="Cart items">${state.cart.map(c => {
-    const p = productById(c.id);
-    return `<article class="cart-item"><a href="#/product/${p.id}" class="product-art" aria-label="View ${esc(p.title)}">${art(p)}</a><div><p class="product-brand">${p.sample ? 'Sample product' : `ASIN ${p.id}`}</p><a href="#/product/${p.id}"><h3>${esc(p.title)}</h3></a><div class="item-actions"><div class="quantity" role="group" aria-label="Quantity for ${esc(p.title)}"><button data-action="quantity" data-id="${p.id}" data-delta="-1" aria-label="Decrease quantity of ${esc(p.title)}" ${c.quantity <= 1 ? 'disabled' : ''}>−</button><span aria-live="polite">${c.quantity}</span><button data-action="quantity" data-id="${p.id}" data-delta="1" aria-label="Increase quantity of ${esc(p.title)}" ${c.quantity >= MAX_QUANTITY ? 'disabled' : ''}>+</button></div><button class="text-button" data-action="remove-cart" data-id="${p.id}">Remove</button><button class="text-button" data-action="save" data-id="${p.id}">Save to list</button></div></div>${priceHtml(p)}</article>`;
-  }).join('')}</section><aside class="summary" aria-label="Cart summary"><h2>A quick look</h2><div class="summary-row"><span>Items</span><span>${summary.count}</span></div><div class="summary-row summary-total"><span>${summary.unknown ? 'Known subtotal' : 'Reference subtotal'}</span><span>${money(summary.total / 100)}</span></div>${summary.unknown ? `<p>${summary.unknown} ${summary.unknown === 1 ? 'item has' : 'items have'} no saved price and ${summary.unknown === 1 ? 'is' : 'are'} excluded from this subtotal.</p>` : ''}<p>Saved prices are estimates. Amazon confirms prices, availability, shipping, and taxes.</p>${hasSamples ? '<p class="warning">Sample products cannot be sent to Amazon. Remove them and add real product links to check out.</p><button class="text-button" data-action="remove-samples">Remove sample items</button>' : ''}<button class="button accent" data-action="checkout" ${hasSamples ? 'disabled' : ''}>Continue to Amazon ${icon('external')}</button><p>You’ll review the items on Amazon before paying. Your local cart stays here until you remove items.</p></aside></div>`;
+  main.innerHTML += `<div class="cart-layout"><section aria-label="Cart items">${items.map(({ product: p, quantity }) => `
+    <article class="cart-item">
+      <a href="#/product/${p.id}" class="product-art" aria-label="View ${esc(p.title)}">${art(p)}</a>
+      <div>
+        <p class="product-brand">${p.sample ? 'Sample product' : `ASIN ${p.id}`}</p>
+        <a href="#/product/${p.id}"><h3>${esc(p.title)}</h3></a>
+        <div class="item-actions">
+          <div class="quantity" role="group" aria-label="Quantity for ${esc(p.title)}">
+            <button data-action="quantity" data-id="${p.id}" data-delta="-1" aria-label="Decrease quantity of ${esc(p.title)}" ${quantity <= 1 ? 'disabled' : ''}>−</button>
+            <span aria-live="polite">${quantity}</span>
+            <button data-action="quantity" data-id="${p.id}" data-delta="1" aria-label="Increase quantity of ${esc(p.title)}" ${quantity >= MAX_QUANTITY ? 'disabled' : ''}>+</button>
+          </div>
+          ${p.sample ? '' : `<a class="text-button" href="${amazonProductUrl(p.id)}" target="_blank" rel="noopener noreferrer" aria-label="View on Amazon (${esc(p.title)})">View on Amazon <span aria-hidden="true">↗</span></a>`}
+          <button class="text-button" data-action="remove-cart" data-id="${p.id}">Remove</button>
+          <button class="text-button" data-action="save" data-id="${p.id}">Save to list</button>
+        </div>
+      </div>
+      ${priceHtml(p)}
+    </article>`).join('')}</section>
+    <aside class="summary" aria-label="Cart summary">
+      <h2>A quick look</h2>
+      <div class="summary-row"><span>Items</span><span>${summary.count}</span></div>
+      <div class="summary-row summary-total"><span>${summary.unknown ? 'Known subtotal' : 'Reference subtotal'}</span><span>${money(summary.total / 100)}</span></div>
+      ${summary.unknown ? `<p>${summary.unknown} ${summary.unknown === 1 ? 'item has' : 'items have'} no saved price and ${summary.unknown === 1 ? 'is' : 'are'} excluded from this subtotal.</p>` : ''}
+      <p>Saved prices are estimates. Amazon confirms prices, availability, shipping, and taxes.</p>
+      ${hasSamples ? '<p class="warning">Sample products are examples and have no Amazon listing.</p><button class="text-button" data-action="remove-samples">Remove sample items</button>' : ''}
+      ${hasImported ? `<p>Open each product on Amazon and add the quantity shown here. Then review your Amazon cart before paying.</p><a class="button accent" href="https://www.amazon.com/gp/cart/view.html" target="_blank" rel="noopener noreferrer">Open Amazon cart ${icon('external')}</a>` : ''}
+    </aside></div>`;
 }
 
 function render({ focus = false } = {}) {
@@ -226,11 +253,7 @@ document.addEventListener('click', event => {
     state.cart = state.cart.filter(c => action === 'remove-samples' ? !productById(c.id)?.sample : c.id !== id);
     persist(); renderCart();
   }
-  if (action === 'checkout') {
-    try { window.location.assign(checkoutUrl(state.cart, allProducts())); }
-    catch (error) { toast(error.message); }
-  }
-  if (action === 'about') openDialog('Shopping, with some space.', `<p>Bare is a small, independent workspace for Amazon US. No login, no ads, no tracking.</p><div class="about-step"><h3>01 / Find something worth keeping</h3><p>Search your local catalog instantly. For new finds, search Amazon and bring back the full product link. No live Amazon catalog is connected.</p></div><div class="about-step"><h3>02 / Make it yours</h3><p>Add a name, a reference price, and a note. Organize products into lists. Everything stays in this browser; clearing site data removes your saved items.</p></div><div class="about-step"><h3>03 / Finish on Amazon</h3><p>Build your cart here, then continue to Amazon. Amazon controls the transfer and may ask you to confirm items or sign in. Check the exact variant, price, and availability there. If the transfer fails, each product has a direct Amazon link.</p></div><div class="about-step"><h3>A note about samples</h3><p>Sample products, illustrations, and prices show how the app works. They are not actual listings and cannot be sent to Amazon.</p></div><div class="form-actions"><button class="button" data-action="close-dialog">Got it</button></div>`);
+  if (action === 'about') openDialog('Shopping, with some space.', `<p>Bare is a small, independent workspace for Amazon US. No login, no ads, no tracking.</p><div class="about-step"><h3>01 / Find something worth keeping</h3><p>Search your local catalog instantly. For new finds, search Amazon and bring back the full product link. No live Amazon catalog is connected.</p></div><div class="about-step"><h3>02 / Make it yours</h3><p>Add a name, a reference price, and a note. Organize products into lists. Everything stays in this browser; clearing site data removes your saved items.</p></div><div class="about-step"><h3>03 / Finish on Amazon</h3><p>Open the listings from your Bare cart and add each item on Amazon in the quantity shown in Bare. Then review your Amazon cart before paying.</p></div><div class="about-step"><h3>A note about samples</h3><p>Sample products, illustrations, and prices show how the app works. Sample products have no Amazon listing.</p></div><div class="form-actions"><button class="button" data-action="close-dialog">Got it</button></div>`);
 });
 
 document.addEventListener('input', event => {

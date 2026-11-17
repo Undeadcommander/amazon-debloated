@@ -19,20 +19,6 @@ export function parseAsin(input) {
 export function amazonProductUrl(asin) { return `https://www.amazon.com/dp/${parseAsin(asin)}`; }
 export function amazonSearchUrl(query) { return `https://www.amazon.com/s?${new URLSearchParams({ k: query.trim() || 'everyday essentials' })}`; }
 
-export function checkoutUrl(cart, products) {
-  if (!cart.length) throw new Error('Your cart is empty.');
-  if (cart.length > MAX_ITEMS) throw new Error(`Transfer up to ${MAX_ITEMS} different products at a time.`);
-  const url = new URL('https://www.amazon.com/gp/aws/cart/add.html');
-  cart.forEach((item, index) => {
-    const product = products.find(p => p.id === item.id);
-    if (!product || product.sample) throw new Error('Remove sample products before continuing to Amazon.');
-    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_QUANTITY) throw new Error('Invalid product quantity.');
-    url.searchParams.set(`ASIN.${index + 1}`, parseAsin(product.id));
-    url.searchParams.set(`Quantity.${index + 1}`, String(item.quantity));
-  });
-  return url.href;
-}
-
 export function normalizeState(input) {
   if (!input || typeof input !== 'object') return emptyState();
   const products = [];

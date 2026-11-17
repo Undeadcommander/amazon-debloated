@@ -20,10 +20,10 @@ On the Windows machine used to build this project, a checksum-verified portable 
 - Import a full Amazon.com product URL or a 10-character ASIN. Optionally enter a product name, price, and notes. Duplicate imports update the existing product.
 - Open clean product detail pages and follow direct links to Amazon.
 - Create, rename, and delete lists; save products to multiple lists.
-- Add products to a persistent local cart, adjust quantities, and transfer ASINs and quantities to Amazon using its add-to-cart URL.
+- Add products to a persistent local cart, adjust quantities, and open each product directly on Amazon.
 - Keep products, lists, and cart in browser `localStorage`, including cross-tab updates. No account or backend database.
 - Choose Light, Dark, Sand, or Ocean from the header's Theme menu, or follow your device with System. The choice is saved separately on this device and syncs across open tabs.
-- Explore eight clearly labeled sample products with local SVG illustrations. Samples cannot be transferred to Amazon.
+- Explore eight clearly labeled sample products with local SVG illustrations. Samples have no Amazon listings.
 - Use “Delete all items” beside “Add product” to permanently remove all imported and sample products from this device, empty every list, and clear the local cart after confirmation. Sample products stay removed after reload; list names and your theme remain. This does not change your Amazon cart.
 
 ## Limits to understand
@@ -32,9 +32,7 @@ On the Windows machine used to build this project, a checksum-verified portable 
 
 The app supports Amazon US only. Open shortened links such as `a.co` on Amazon first and copy the resulting full product URL. Choose the exact product variant before copying its link.
 
-The cart uses `https://www.amazon.com/gp/aws/cart/add.html` with numbered `ASIN.n` and `Quantity.n` parameters, as described in Amazon's [add-to-cart documentation](https://g-ecx.images-amazon.com/images/G/09/associates/paapi/dg/AddToCartForm.html). No affiliate tag is added. Amazon controls acceptance, sign-in, confirmation, price, and availability. The app does not read or synchronize the user's existing Amazon cart, reserve inventory, or place orders. Transfer is capped at 50 distinct products and 99 units per product. The local cart remains intact after handoff. If Amazon rejects a transfer, use each product's direct Amazon link to add items there.
-
-**Amazon-side transfer has not been verified with a signed-in account.** Tests verify the exact outbound ASIN and quantity encoding, not Amazon's current handling of it.
+Use **View on Amazon** beside each imported product to open its listing in a new tab. Add the quantity shown in Bare on Amazon, then use **Open Amazon cart** to review your items there. All links are affiliate-free. The local cart holds up to 50 distinct products and 99 units per product.
 
 All saved data belongs to this browser origin. Clearing site data, changing the port, or switching browsers changes the available data. Stored data is not encrypted. If storage is unavailable, the app warns and continues for the current session. This version intentionally has no cloud synchronization.
 
@@ -52,7 +50,7 @@ npm run check
 npm test
 ```
 
-Tests cover URL validation, state recovery, search/sorting, integer-cent totals, cart transfer construction, HTTP delivery/security, and DOM shopping flows through jsdom. jsdom is a development-only dependency. No test contacts Amazon or changes a real Amazon cart. DOM tests do not replace visual verification in a real browser.
+Tests cover URL validation, state recovery, search/sorting, integer-cent totals, cart links, HTTP delivery/security, and DOM shopping flows through jsdom. jsdom is a development-only dependency. No test contacts Amazon or changes a real Amazon cart. DOM tests do not replace visual verification in a real browser.
 
 ## Structure
 

@@ -48,11 +48,10 @@ test('keyless journey: import, details, list, cart, quantities, persistence', as
   await navigate('/cart');
   click('[data-delta="1"]');
   assert.equal(stored().cart[0].quantity, 2);
+  assert.equal(q('.cart-item .quantity span').textContent, '2');
   assert.match(q('.summary-total').textContent, /59.98/);
-  assert.equal(q('[data-action="checkout"]').disabled, false);
-  const transfer = new URL(core.checkoutUrl(stored().cart, stored().products));
-  assert.equal(transfer.searchParams.get('ASIN.1'), 'B012345678');
-  assert.equal(transfer.searchParams.get('Quantity.1'), '2');
+  assert.equal(q('.cart-item a[target="_blank"]').href, 'https://www.amazon.com/dp/B012345678');
+  assert.equal(q('.summary a[target="_blank"]').href, 'https://www.amazon.com/gp/cart/view.html');
   const reload = await boot(stored()); t.after(() => reload.dom.window.close());
   assert.equal(reload.q('#cart-count').textContent, '2');
   assert.equal(reload.w.document.querySelectorAll('.product').length, 9);
@@ -63,7 +62,7 @@ test('keyless journey: import, details, list, cart, quantities, persistence', as
   assert.equal(stored().cart.length, 1);
 });
 
-test('sample cart is blocked; live search, empty states, and sorting work', async t => {
+test('sample-only carts have no Amazon links; search, empty states, and sorting work', async t => {
   const app = await boot(); t.after(() => app.dom.window.close());
   const { q, click, fill, navigate } = app;
   fill('#search', 'headphones');
@@ -71,7 +70,7 @@ test('sample cart is blocked; live search, empty states, and sorting work', asyn
   assert.equal(q('#amazon-search').href, 'https://www.amazon.com/');
   click('[data-action="add-cart"]');
   await navigate('/cart');
-  assert.equal(q('[data-action="checkout"]').disabled, true);
+  assert.equal(q('.cart-layout a[target="_blank"]'), null);
   assert.match(q('.warning').textContent, /Sample products/);
   click('[data-action="remove-samples"]');
   assert.equal(q('#cart-count').textContent, '0');
@@ -86,6 +85,23 @@ test('sample cart is blocked; live search, empty states, and sorting work', asyn
   fill('#search', '');
   q('#sort').value = 'price-low'; q('#sort').dispatchEvent(new app.w.Event('change', { bubbles: true }));
   assert.match(q('.product-title').textContent, /Pocket notebook/);
+});
+
+test('a saved cart shows each imported product link beside its quantity even with samples present', async t => {
+  const saved = {
+    products: [{ id: 'B012345678', title: 'Lamp' }, { id: 'B087654321', title: 'Notebook' }],
+    cart: [{ id: 'B087654321', quantity: 3 }, { id: 'sample-2', quantity: 1 }, { id: 'B012345678', quantity: 2 }],
+  };
+  const app = await boot(saved); t.after(() => app.dom.window.close());
+  await app.navigate('/cart');
+  const rows = [...app.w.document.querySelectorAll('.cart-item')];
+  assert.deepEqual(rows.map(row => [row.querySelector('a[target="_blank"]')?.href, row.querySelector('.quantity span').textContent]), [
+    ['https://www.amazon.com/dp/B087654321', '3'],
+    [undefined, '1'],
+    ['https://www.amazon.com/dp/B012345678', '2'],
+  ]);
+  assert.equal(app.q('.summary a[target="_blank"]').href, 'https://www.amazon.com/gp/cart/view.html');
+  assert.deepEqual(app.stored(), saved);
 });
 
 test('unsafe links are rejected and product/list content is rendered as text', async t => {
